@@ -33,30 +33,27 @@ public class JWTUtil {
             .withIssuer(issuer)
             .withSubject(subject)
             .build();
-    private Date expirationAccessDate = Date.from(ZonedDateTime.now().plusMinutes(30).toInstant());
-    private Date expirationRefreshDate = Date.from(ZonedDateTime.now().plusDays(3).toInstant());
 
-
-
-    public String generateAccessToken(String username, String role) {
+    public String generateAccessToken(long id, String name, String surname, String email, String role) {
         return JWT.create()
                 .withSubject(subject)
-                .withExpiresAt(expirationAccessDate)
+                .withExpiresAt(Date.from(ZonedDateTime.now().plusMinutes(30).toInstant()))
                 .withIssuedAt(new Date())
                 .withIssuer(issuer)
-                .withClaim("username", username)
+                .withClaim("id", id)
+                .withClaim("name", name)
+                .withClaim("surname", surname)
+                .withClaim("email", email)
                 .withClaim("role", role)
                 .sign(signAccessToken);
     }
 
-    public String generateRefreshToken(String username, String role, long id) {
+    public String generateRefreshToken(long id) {
         return JWT.create()
                 .withSubject(subject)
-                .withExpiresAt(expirationRefreshDate)
+                .withExpiresAt(Date.from(ZonedDateTime.now().plusDays(3).toInstant()))
                 .withIssuedAt(new Date())
                 .withIssuer(issuer)
-                .withClaim("username", username)
-                .withClaim("role", role)
                 .withClaim("id", id)
                 .sign(signRefreshToken);
     }
@@ -81,12 +78,12 @@ public class JWTUtil {
         }
     }
 
-    public String getUsernameFromAccessToken(String token) {
-        return verifierForAccessToken.verify(token).getClaim("username").asString();
+    public String getEmailFromAccessToken(String token) {
+        return verifierForAccessToken.verify(token).getClaim("email").asString();
     }
 
-    public String getUsernameFromRefreshToken(String token) {
-        return verifierForRefreshToken.verify(token).getClaim("username").asString();
+    public String getEmailFromRefreshToken(String token) {
+        return verifierForRefreshToken.verify(token).getClaim("email").asString();
     }
 
     public long getIdFromRefreshToken(String token) {

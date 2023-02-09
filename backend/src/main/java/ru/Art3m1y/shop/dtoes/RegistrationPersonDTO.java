@@ -1,7 +1,13 @@
 package ru.Art3m1y.shop.dtoes;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Schema(name = "Модель передачи данных для регистрации", description = "Используется для удаления не нужных полей из основной модели Person")
+@Setter
+@Getter
 public class RegistrationPersonDTO {
     @NotEmpty(message = "Поле с именем не может быть пустым.")
     private String name;
@@ -12,69 +18,10 @@ public class RegistrationPersonDTO {
     private int yearOfBirth;
     @NotEmpty(message = "Поле со страной проживания не может быть пустым.")
     private String country;
-    @NotEmpty(message = "Имя пользователя не может быть пустым.")
-    @Size(min = 3, max = 30, message = "Имя пользователя должно содержать от 3 до 30 символов.")
-    private String username;
     @NotEmpty(message = "Почта не может быть пустой.")
     @Email(message = "Введите почту в правильном формате.")
     private String email;
     @NotEmpty(message = "Почта не может быть пустой.")
     @Size(min = 5, message = "Минимальная длина пароля составляет 5 символов.")
     private String password;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getSurname() {
-        return surname;
-    }
-
-    public void setSurname(String surname) {
-        this.surname = surname;
-    }
-
-    public int getYearOfBirth() {
-        return yearOfBirth;
-    }
-
-    public void setYearOfBirth(int yearOfBirth) {
-        this.yearOfBirth = yearOfBirth;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

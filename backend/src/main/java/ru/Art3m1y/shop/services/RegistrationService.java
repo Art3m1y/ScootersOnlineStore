@@ -19,8 +19,8 @@ public class RegistrationService {
     }
 
     @Transactional(readOnly = true)
-    public boolean findByName(String username) {
-        return personRepository.findByUsername(username).isPresent() ? true : false;
+    public boolean findByName(String email) {
+        return personRepository.findByEmail(email).isPresent() ? true : false;
     }
 
     @Transactional()
@@ -28,6 +28,7 @@ public class RegistrationService {
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         person.setRole("ROLE_USER");
         person.setCreatedAt(new Date());
+        person.setUpdatedAt(new Date());
         personRepository.save(person);
     }
 }

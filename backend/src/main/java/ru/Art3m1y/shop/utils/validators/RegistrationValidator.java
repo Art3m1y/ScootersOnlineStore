@@ -23,8 +23,8 @@ public class RegistrationValidator implements Validator {
     public void validate(Object target, Errors errors) {
         Person person = (Person) target;
 
-        if (registrationService.findByName(person.getUsername())) {
-            errors.rejectValue("username", "", "Имя пользователя уже используется.");
+        if (registrationService.findByName(person.getEmail())) {
+            errors.rejectValue("email", "", "Почта уже используется.");
         }
     }
 }

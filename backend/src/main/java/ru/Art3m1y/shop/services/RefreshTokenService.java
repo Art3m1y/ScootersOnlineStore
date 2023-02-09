@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 import ru.Art3m1y.shop.repositories.RefreshTokenRepository;
+import ru.Art3m1y.shop.utils.exceptions.RefreshTokenNotFoundException;
 
 import java.util.Optional;
 
@@ -40,5 +41,9 @@ public class RefreshTokenService {
         }
 
         save(refreshTokenUpdated);
+    }
+
+    public RefreshToken findById(long id) {
+        return refreshTokenRepository.findById(id).orElseThrow(RefreshTokenNotFoundException::new);
     }
 }

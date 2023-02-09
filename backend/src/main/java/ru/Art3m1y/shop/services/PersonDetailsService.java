@@ -20,11 +20,11 @@ public class PersonDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<Person> person = personRepository.findByUsername(username);
+    public UserDetails loadUserByUsername(String email) {
+        Optional<Person> person = personRepository.findByEmail(email);
 
         if (person.isEmpty()) {
-            throw new UsernameNotFoundException("Неверное имя пользователя или пароль");
+            throw new UsernameNotFoundException("Неверная почта пользователя или пароль");
         }
 
         return new PersonDetails(person.get());

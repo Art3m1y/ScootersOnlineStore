@@ -1,27 +1,18 @@
 package ru.Art3m1y.shop.dtoes;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 
+
+@Schema(name = "Модель передачи данных для авторизации", description = "Используется для удаления не нужных полей из основной модели Person")
+@Getter
+@Setter
 public class AuthenticationPersonDTO {
-    @NotEmpty(message = "Имя пользователя не может быть пустым.")
-    private String username;
+    @NotEmpty(message = "Почта не может быть пустой.")
+    private String email;
     @NotEmpty(message = "Почта не может быть пустой.")
     private String password;
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

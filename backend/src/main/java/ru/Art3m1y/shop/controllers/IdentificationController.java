@@ -1,15 +1,22 @@
 package ru.Art3m1y.shop.controllers;
 
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.Art3m1y.shop.dtoes.AuthenticationPersonDTO;
@@ -29,8 +36,10 @@ import ru.Art3m1y.shop.utils.validators.RegistrationValidator;
 import java.util.Map;
 import java.util.Optional;
 
+@Tag(name = "Регистрация, Аутентификация, идентификация, авторизация пользователей")
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class IdentificationController {
     private final PersonModelMapper personModelMapper;
     private final RegistrationValidator registrationValidator;
@@ -39,19 +48,12 @@ public class IdentificationController {
     private final AuthenticationManager authenticationManager;
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
+    private final int cookieMaxAge = 259200;
 
-    public IdentificationController(PersonModelMapper personModelMapper, RegistrationValidator registrationValidator, RegistrationService registrationService, JWTUtil jwtUtil, AuthenticationManager authenticationManager, AuthenticationService authenticationService, RefreshTokenService refreshTokenService) {
-        this.personModelMapper = personModelMapper;
-        this.registrationValidator = registrationValidator;
-        this.registrationService = registrationService;
-        this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
-        this.authenticationService = authenticationService;
-        this.refreshTokenService = refreshTokenService;
-    }
-
+    @Operation(summary = "Регистрация пользователя")
     @PostMapping("/registration")
-    public ResponseEntity<ResponseWithTokensDTO> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult) {
+    @PreAuthorize("isAnonymous()")
+    public ResponseEntity<Map<String, String>> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
         Person person = personModelMapper.MapToPerson(registrationPersonDTO);
 
         registrationValidator.validate(person, bindingResult);
@@ -68,11 +70,13 @@ public class IdentificationController {
 
         refreshTokenService.save(refreshToken);
 
-        return new ResponseEntity<>(new ResponseWithTokensDTO(jwtUtil.generateAccessToken(person.getUsername(), "ROLE_USER"), jwtUtil.generateRefreshToken(person.getUsername(), "ROLE_USER", refreshToken.getId())), HttpStatus.OK);
+        return returnRefreshAndAccessTokens(response, refreshToken, person);
     }
 
+    @Operation(summary = "Аутентификация пользователя")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid AuthenticationPersonDTO authenticationPersonDTO, BindingResult bindingResult) {
+    @PreAuthorize("isAnonymous()")
+    public ResponseEntity<?> login(@RequestBody @Valid AuthenticationPersonDTO authenticationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
         Person person = personModelMapper.MapToPerson(authenticationPersonDTO);
 
         if (bindingResult.hasErrors()) {
@@ -81,7 +85,7 @@ public class IdentificationController {
             throw new AuthenticationPersonException(errorsMessage.toString());
         }
 
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getUsername(), person.getPassword());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getEmail(), person.getPassword());
 
         Authentication auth = authenticationManager.authenticate(token);
 
@@ -95,65 +99,96 @@ public class IdentificationController {
 
         refreshTokenService.updateRefreshToken(personAuthenticated, refreshToken);
 
-        return new ResponseEntity<>(new ResponseWithTokensDTO(jwtUtil.generateAccessToken(personAuthenticated.getUsername(), personAuthenticated.getRole()), jwtUtil.generateRefreshToken(personAuthenticated.getUsername(), personAuthenticated.getRole(), refreshToken.getId())), HttpStatus.OK);
+        return returnRefreshAndAccessTokens(response, refreshToken, personAuthenticated);
     }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody ResponseWithTokensDTO refreshToken) {
-        if (jwtUtil.verifyRefreshToken(refreshToken.getRefreshToken()) && refreshTokenService.existsById(jwtUtil.getIdFromRefreshToken(refreshToken.getRefreshToken()))) {
-            refreshTokenService.deleteById(jwtUtil.getIdFromRefreshToken(refreshToken.getRefreshToken()));
-            return ResponseEntity.ok().build();
+    @Operation(summary = "Выход из аккаунта пользователя")
+    @GetMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> logout(@CookieValue("refreshToken") Optional<String> refreshTokenFromCookie, HttpServletResponse response) {
+        if (refreshTokenFromCookie.isPresent()) {
+            String refreshToken = refreshTokenFromCookie.get();
+            if (jwtUtil.verifyRefreshToken(refreshToken) && refreshTokenService.existsById(jwtUtil.getIdFromRefreshToken(refreshToken))) {
+                Cookie deleteRefreshTokenCookie = new Cookie("refreshToken", null);
+                deleteRefreshTokenCookie.setMaxAge(0);
+                response.addCookie(deleteRefreshTokenCookie);
+                refreshTokenService.deleteById(jwtUtil.getIdFromRefreshToken(refreshToken));
+                return ResponseEntity.ok().build();
+            }
         }
 
         throw new LogoutPersonException();
     }
 
-    @GetMapping("/showuserinfo")
-    public Person showUserInfo() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
-    }
-
-    @GetMapping("/refreshtoken")
-    public ResponseEntity<ResponseWithTokensDTO> refreshToken(@CookieValue Optional<String> refreshToken) {
-        if (refreshToken.isPresent() && jwtUtil.verifyRefreshToken(refreshToken.get()) && refreshTokenService.existsById(jwtUtil.getIdFromRefreshToken(refreshToken.get()))) {
-            String refreshTokenPresented = refreshToken.get();
-            String username = jwtUtil.getUsernameFromRefreshToken(refreshTokenPresented);
-            String role = jwtUtil.getRoleFromRefreshToken(refreshTokenPresented);
-            return new ResponseEntity<>(new ResponseWithTokensDTO(jwtUtil.generateAccessToken(username, role)), HttpStatus.OK);
+    @Operation(summary = "Обновление токена доступа")
+    @PreAuthorize("isAnonymous()")
+    @GetMapping("/getnewaccesstoken")
+    public ResponseEntity<Map<String, String>> getNewRefreshToken(@CookieValue("refreshToken") Optional<String> refreshTokenFromCookie) {
+        if (refreshTokenFromCookie.isPresent()) {
+            String refreshToken = refreshTokenFromCookie.get();
+            if (jwtUtil.verifyRefreshToken(refreshToken) && refreshTokenService.existsById(jwtUtil.getIdFromRefreshToken(refreshToken))) {
+                RefreshToken refreshTokenFromDB = refreshTokenService.findById(jwtUtil.getIdFromRefreshToken(refreshToken));
+                Person person = refreshTokenFromDB.getPerson();
+                String accessToken = jwtUtil.generateAccessToken(person.getId(), person.getName(), person.getSurname(), person.getEmail(), person.getRole());
+                return new ResponseEntity<>(Map.of("accessToken", accessToken), HttpStatus.OK);
+            }
         }
 
         throw new RefreshTokenNotValidException();
     }
 
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(RegistrationPersonException e) {
+    private ResponseEntity<Map<String, String>> returnRefreshAndAccessTokens(HttpServletResponse response, RefreshToken refreshToken, Person person) {
+        String refreshTokenGenerated = jwtUtil.generateRefreshToken(refreshToken.getId());
+
+        Cookie cookieWithRefreshToken = new Cookie("refreshToken", refreshTokenGenerated);
+
+        cookieWithRefreshToken.setMaxAge(cookieMaxAge);
+
+        response.addCookie(cookieWithRefreshToken);
+
+        String accessTokenGenerated = jwtUtil.generateAccessToken(person.getId(), person.getName(), person.getSurname(), person.getEmail(), person.getRole());
+
+        return new ResponseEntity<>(Map.of("accessToken", accessTokenGenerated), HttpStatus.OK);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler({RegistrationPersonException.class, UsernameNotFoundException.class, PersonNotFoundException.class})
+    private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(AuthenticationPersonException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(AuthenticationException e) {
         ErrorResponse response = new ErrorResponse("Неверное имя пользователя или пароль", System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(LogoutPersonException e) {
         ErrorResponse response = new ErrorResponse("Токен обновления не смог пройти валидацию, либо он уже является не актуальным.", System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(RefreshTokenNotValidException e) {
         ErrorResponse response = new ErrorResponse("Токен обновления не смог пройти валидацию, либо он уже является не актуальным", System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler
+    private ResponseEntity<ErrorResponse> handlerException(HttpMessageNotReadableException e) {
+        ErrorResponse response = new ErrorResponse("Не удалось десереализировать переданные json-данные, ошибка: " + e.getMessage(), System.currentTimeMillis());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }
