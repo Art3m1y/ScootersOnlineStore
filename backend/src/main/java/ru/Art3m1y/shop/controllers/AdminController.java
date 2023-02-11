@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,20 +32,20 @@ import java.util.Arrays;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
     private final ProductService productService;
-    private final ProductModelMapper productModelMapper;
+    private final ModelMapper modelMapper;
     private final Helpers helpers;
     private final ImageService imageService;
 
     @Operation(summary = "Добавление нового продукта и изображений к нему", description = "При добавлении максимум можно добавить 5 изображении, минимум - одно, обязательным является изображение с названием image1")
     @PostMapping(value = "/product/add", consumes = {"application/json", "multipart/form-data"})
-    public ResponseEntity<?> addProduct(@Valid @RequestPart SaveProductDTO product, BindingResult bindingResult, @RequestPart MultipartFile image1, @RequestPart(required = false) MultipartFile image2, @RequestPart(required = false) MultipartFile image3, @RequestPart(required = false) MultipartFile image4, @RequestPart(required = false) MultipartFile image5) {
+    public ResponseEntity<?> addProduct(@Valid @RequestPart SaveProductDTO saveProductDTO, BindingResult bindingResult, @RequestPart MultipartFile image1, @RequestPart(required = false) MultipartFile image2, @RequestPart(required = false) MultipartFile image3, @RequestPart(required = false) MultipartFile image4, @RequestPart(required = false) MultipartFile image5) {
         if (bindingResult.hasErrors()) {
             StringBuilder errors = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
             throw new RuntimeException(errors.toString());
         }
 
-        productService.saveProduct(productModelMapper.mapToProduct(product), Arrays.asList(image1, image2, image3, image4, image5));
+        productService.saveProduct(modelMapper.map(saveProductDTO, Product.class), Arrays.asList(image1, image2, image3, image4, image5));
 
         return ResponseEntity.ok().build();
     }
@@ -77,7 +78,7 @@ public class AdminController {
     @DeleteMapping("/product/deleteimagefromproduct")
     public ResponseEntity<?> deleteImageFromProduct(@RequestBody String id) {
         if (!helpers.checkConvertFromStringToLong(id)) {
-            throw new DeleteImageFromProductException("Не удалось преобразовать строковое значение идентификатора продукта в лонг-формат");
+            throw new RuntimeException("Не удалось преобразовать строковое значение идентификатора продукта в лонг-формат");
         }
 
         imageService.deleteImageFromProductById(Long.parseLong(id));
@@ -91,7 +92,7 @@ public class AdminController {
         if (bindingResult.hasErrors()) {
             StringBuilder errors = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
-            throw new ProductSaveException(errors.toString());
+            throw new RuntimeException(errors.toString());
         }
 
         productService.updateProduct(productModelMapper.mapToProduct(product));
@@ -100,7 +101,7 @@ public class AdminController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({ProductSaveException.class, DeleteProductException.class, GetProductException.class, AddImageToProductException.class, DeleteImageFromProductException.class, GetImageException.class})
+    @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

@@ -1,21 +1,18 @@
 package ru.Art3m1y.shop.services;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 import ru.Art3m1y.shop.repositories.RefreshTokenRepository;
-import ru.Art3m1y.shop.utils.exceptions.RefreshTokenNotFoundException;
 
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
-
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository) {
-        this.refreshTokenRepository = refreshTokenRepository;
-    }
 
     @Transactional
     public void save(RefreshToken refreshToken) {
@@ -44,6 +41,6 @@ public class RefreshTokenService {
     }
 
     public RefreshToken findById(long id) {
-        return refreshTokenRepository.findById(id).orElseThrow(RefreshTokenNotFoundException::new);
+        return refreshTokenRepository.findById(id).orElseThrow(() -> new RuntimeException("Токен обновления не найден в базе данных"));
     }
 }

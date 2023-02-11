@@ -1,5 +1,6 @@
 package ru.Art3m1y.shop.services;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -11,20 +12,16 @@ import ru.Art3m1y.shop.security.PersonDetails;
 
 import java.util.Optional;
 @Service
+@RequiredArgsConstructor
 public class PersonDetailsService implements UserDetailsService {
     private final PersonRepository personRepository;
-
-    public PersonDetailsService(PersonRepository personRepository) {
-        this.personRepository = personRepository;
-    }
-
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) {
         Optional<Person> person = personRepository.findByEmail(email);
 
         if (person.isEmpty()) {
-            throw new UsernameNotFoundException("Неверная почта пользователя или пароль");
+            throw new RuntimeException("Неверные учетные данные пользователя");
         }
 
         return new PersonDetails(person.get());

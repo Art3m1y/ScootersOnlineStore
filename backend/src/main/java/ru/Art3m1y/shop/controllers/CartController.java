@@ -2,6 +2,7 @@ package ru.Art3m1y.shop.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,7 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CartController {
     private final CartService cartService;
-    private final CartModelMapper cartModelMapper;
+    private final ModelMapper modelMapper;
 
     @PostMapping("/add")
     @PreAuthorize("isAuthenticated()")
@@ -39,7 +40,7 @@ public class CartController {
         if (bindingResult.hasErrors()) {
             StringBuilder errorsMessage = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new AddProductToCartException(errorsMessage.toString());
+            throw new RuntimeException(errorsMessage.toString());
         }
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
@@ -56,7 +57,7 @@ public class CartController {
 
         List<GetCartDTO> products = new ArrayList<>();
 
-        cartService.getProductFromCart(person).forEach(product -> products.add(cartModelMapper.MapToGetCartDTO(product)));
+        cartService.getProductFromCart(person).forEach(product -> products.add(modelMapper.map(product, GetCartDTO.class)));
 
         return ResponseEntity.ok().body(products);
     }
@@ -67,7 +68,7 @@ public class CartController {
         if (bindingResult.hasErrors()) {
             StringBuilder errorsMessage = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new DeleteProductFromCartException(errorsMessage.toString());
+            throw new RuntimeException(errorsMessage.toString());
         }
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
@@ -78,7 +79,7 @@ public class CartController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({AddProductToCartException.class, DeleteProductFromCartException.class})
+    @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

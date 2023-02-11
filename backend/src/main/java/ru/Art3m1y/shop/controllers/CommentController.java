@@ -3,6 +3,7 @@ package ru.Art3m1y.shop.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,7 +27,7 @@ import ru.Art3m1y.shop.utils.other.Helpers;
 @PreAuthorize("isAuthenticated()")
 public class CommentController {
     private final CommentService commentService;
-    private final CommentModelMapper commentModelMapper;
+    private final ModelMapper modelMapper;
     private final Helpers helpers;
 
     @PostMapping("/add")
@@ -34,7 +35,7 @@ public class CommentController {
         if (bindingResult.hasErrors()) {
             StringBuilder errors = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
-            throw new AddCommentException(errors.toString());
+            throw new RuntimeException(errors.toString());
         }
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
@@ -49,7 +50,7 @@ public class CommentController {
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteComment(@RequestBody String id) {
         if (!helpers.checkConvertFromStringToLong(id)) {
-            throw new DeleteCommentException("Не удалось преобразовать строковое значение идентификатора продукта в лонг-формат");
+            throw new RuntimeException("Не удалось преобразовать строковое значение идентификатора продукта в лонг-формат");
         }
 
         long id_converted = Long.parseLong(id);
@@ -66,18 +67,18 @@ public class CommentController {
         if (bindingResult.hasErrors()) {
             StringBuilder errors = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
-            throw new UpdateCommentException(errors.toString());
+            throw new RuntimeException(errors.toString());
         }
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
-        commentService.updateCommentById(commentModelMapper.MapToComment(updateCommentDTO), person);
+        commentService.updateCommentById(modelMapper.map(updateCommentDTO, Comment.class), person);
 
         return  ResponseEntity.ok().build();
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({AddCommentException.class, ProductNotFoundException.class, CommentNotFoundException.class, DeleteCommentException.class, UpdateCommentException.class})
+    @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

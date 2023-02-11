@@ -6,7 +6,6 @@ import ru.Art3m1y.shop.models.Cart;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.CartRepository;
-import ru.Art3m1y.shop.utils.exceptions.DeleteProductFromCartException;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +46,7 @@ public class CartService {
         Optional<Cart> optionalCart = getByProductAndPerson(new Product(productId), person);
 
         if (optionalCart.isEmpty()) {
-            throw new DeleteProductFromCartException("Не удалось найти запись в базе данных о таком продукте заданного пользователя");
+            throw new RuntimeException("Не удалось найти запись в базе данных о таком продукте заданного пользователя");
         }
 
         Cart cart = optionalCart.get();

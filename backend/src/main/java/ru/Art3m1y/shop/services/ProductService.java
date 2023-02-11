@@ -9,11 +9,6 @@ import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.ImageRepository;
 import ru.Art3m1y.shop.repositories.ProductRepository;
 import ru.Art3m1y.shop.utils.enums.ContentType;
-import ru.Art3m1y.shop.utils.exceptions.AddImageToProductException;
-import ru.Art3m1y.shop.utils.exceptions.GetProductException;
-import ru.Art3m1y.shop.utils.exceptions.ProductNotFoundException;
-import ru.Art3m1y.shop.utils.exceptions.ProductSaveException;
-
 import java.io.*;
 import java.util.*;
 
@@ -25,7 +20,7 @@ public class ProductService {
 
     public void productExistsById(long id) {
         if (!productRepository.existsById(id)) {
-            throw new ProductNotFoundException("Продукт с таким идентификатором не найден");
+            throw new RuntimeException("Продукт с таким идентификатором не найден");
         }
     }
     public void saveProduct(Product product, List<MultipartFile> images) {
@@ -56,7 +51,7 @@ public class ProductService {
 
                         productRepository.save(product);
                     } catch (Exception e) {
-                        throw new ProductSaveException(e.getMessage());
+                        throw new RuntimeException(e.getMessage());
                     }
                 }
             });
@@ -67,7 +62,7 @@ public class ProductService {
         Optional<Product> optionalProduct = productRepository.findById(id);
 
         if (optionalProduct.isEmpty()) {
-            throw new GetProductException("Продукт с таким идентификатором не найден");
+            throw new RuntimeException("Продукт с таким идентификатором не найден");
         }
 
         return optionalProduct.get();
@@ -118,7 +113,7 @@ public class ProductService {
 
     public void addImageToProductById(long id, MultipartFile image) {
         if ((image == null) || image.getSize() == 0) {
-            throw new AddImageToProductException("Вы не добавили изображение к продукту, либо добавили его неправильно");
+            throw new RuntimeException("Вы не добавили изображение к продукту, либо добавили его неправильно");
         }
 
         Product product = getProductById(id);
@@ -139,7 +134,7 @@ public class ProductService {
 
             productRepository.save(product);
         } catch (Exception e) {
-            throw new AddImageToProductException(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 

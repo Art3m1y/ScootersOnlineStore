@@ -1,27 +1,21 @@
 package ru.Art3m1y.shop.services;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.Art3m1y.shop.models.Image;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.ImageRepository;
 import ru.Art3m1y.shop.repositories.ProductRepository;
-import ru.Art3m1y.shop.utils.enums.ContentType;
-import ru.Art3m1y.shop.utils.exceptions.GetImageException;
 
 import java.io.File;
 import java.util.Date;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ImageService {
     private final ImageRepository imageRepository;
     private final ProductRepository productRepository;
-
-    public ImageService(ImageRepository imageRepository,
-                        ProductRepository productRepository) {
-        this.imageRepository = imageRepository;
-        this.productRepository = productRepository;
-    }
 
     public Image getRepresentationOfImageById(long id) {
         Optional<Image> optionalImage = imageRepository.findById(id);

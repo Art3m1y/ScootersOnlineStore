@@ -7,6 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -14,21 +15,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.Art3m1y.shop.dtoes.AuthenticationPersonDTO;
 import ru.Art3m1y.shop.dtoes.RegistrationPersonDTO;
-import ru.Art3m1y.shop.dtoes.ResponseWithTokensDTO;
 import ru.Art3m1y.shop.modelMappers.PersonModelMapper;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 import ru.Art3m1y.shop.security.PersonDetails;
-import ru.Art3m1y.shop.services.AuthenticationService;
+import ru.Art3m1y.shop.services.PersonService;
 import ru.Art3m1y.shop.services.RefreshTokenService;
-import ru.Art3m1y.shop.services.RegistrationService;
 import ru.Art3m1y.shop.utils.exceptions.*;
 import ru.Art3m1y.shop.utils.jwt.JWTUtil;
 import ru.Art3m1y.shop.utils.validators.RegistrationValidator;
@@ -41,30 +38,29 @@ import java.util.Optional;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class IdentificationController {
-    private final PersonModelMapper personModelMapper;
+    private final PersonService personService;
+    private final ModelMapper modelMapper;
     private final RegistrationValidator registrationValidator;
-    private final RegistrationService registrationService;
     private final JWTUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
-    private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
-    private final int cookieMaxAge = 259200;
+    private final int cookie_max_age = 259200;
 
     @Operation(summary = "Регистрация пользователя")
     @PostMapping("/registration")
     @PreAuthorize("isAnonymous()")
     public ResponseEntity<Map<String, String>> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
-        Person person = personModelMapper.MapToPerson(registrationPersonDTO);
+        Person person = modelMapper.map(registrationPersonDTO, Person.class);
 
         registrationValidator.validate(person, bindingResult);
 
         if (bindingResult.hasErrors()) {
             StringBuilder errorsMessage = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new RegistrationPersonException(errorsMessage.toString());
+            throw new RuntimeException(errorsMessage.toString());
         }
 
-        registrationService.save(person);
+        personService.save(person);
 
         RefreshToken refreshToken = new RefreshToken(person);
 
@@ -77,12 +73,12 @@ public class IdentificationController {
     @PostMapping("/login")
     @PreAuthorize("isAnonymous()")
     public ResponseEntity<?> login(@RequestBody @Valid AuthenticationPersonDTO authenticationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
-        Person person = personModelMapper.MapToPerson(authenticationPersonDTO);
+        Person person = modelMapper.map(authenticationPersonDTO, Person.class);
 
         if (bindingResult.hasErrors()) {
             StringBuilder errorsMessage = new StringBuilder();
             bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new AuthenticationPersonException(errorsMessage.toString());
+            throw new RuntimeException(errorsMessage.toString());
         }
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getEmail(), person.getPassword());
@@ -116,7 +112,7 @@ public class IdentificationController {
             }
         }
 
-        throw new LogoutPersonException();
+        throw new RuntimeException("Токен обновления не смог пройти валидацию, либо он уже является не актуальным");
     }
 
     @Operation(summary = "Обновление токена доступа")
@@ -133,7 +129,7 @@ public class IdentificationController {
             }
         }
 
-        throw new RefreshTokenNotValidException();
+        throw new RuntimeException("Токен обновления не смог пройти валидацию, либо он уже является не актуальным");
     }
 
     private ResponseEntity<Map<String, String>> returnRefreshAndAccessTokens(HttpServletResponse response, RefreshToken refreshToken, Person person) {
@@ -141,7 +137,7 @@ public class IdentificationController {
 
         Cookie cookieWithRefreshToken = new Cookie("refreshToken", refreshTokenGenerated);
 
-        cookieWithRefreshToken.setMaxAge(cookieMaxAge);
+        cookieWithRefreshToken.setMaxAge(cookie_max_age);
 
         response.addCookie(cookieWithRefreshToken);
 
@@ -151,37 +147,9 @@ public class IdentificationController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({RegistrationPersonException.class, UsernameNotFoundException.class, PersonNotFoundException.class})
+    @ExceptionHandler
     private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
         ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(AuthenticationPersonException e) {
-        ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(AuthenticationException e) {
-        ErrorResponse response = new ErrorResponse("Неверное имя пользователя или пароль", System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(LogoutPersonException e) {
-        ErrorResponse response = new ErrorResponse("Токен обновления не смог пройти валидацию, либо он уже является не актуальным.", System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(RefreshTokenNotValidException e) {
-        ErrorResponse response = new ErrorResponse("Токен обновления не смог пройти валидацию, либо он уже является не актуальным", System.currentTimeMillis());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 

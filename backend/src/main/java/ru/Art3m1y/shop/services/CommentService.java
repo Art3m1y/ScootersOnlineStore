@@ -7,9 +7,6 @@ import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.CommentRepository;
 import ru.Art3m1y.shop.repositories.ProductRepository;
-import ru.Art3m1y.shop.utils.exceptions.CommentNotFoundException;
-import ru.Art3m1y.shop.utils.exceptions.DeleteCommentException;
-import ru.Art3m1y.shop.utils.exceptions.ProductNotFoundException;
 
 import java.util.Date;
 
@@ -21,7 +18,7 @@ public class CommentService {
 
     public void existsById(long id) {
         if (!commentRepository.existsById(id)) {
-            throw new CommentNotFoundException("Комментарий с таким идентификатором не найден");
+            throw new RuntimeException("Комментарий с таким идентификатором не найден");
         }
     }
 
@@ -36,7 +33,7 @@ public class CommentService {
     }
 
     public Comment findById(long id) {
-        return commentRepository.findById(id).orElseThrow(() -> new CommentNotFoundException("Комментарий с таким идентификатором не найден"));
+        return commentRepository.findById(id).orElseThrow(() -> new RuntimeException("Комментарий с таким идентификатором не найден"));
     }
 
     public void deleteCommentById(long id, Person person) {
@@ -44,7 +41,7 @@ public class CommentService {
 
         if (!person.getRole().equals("ROLE_ADMIN")) {
             if (!comment.getPerson().equals(person)) {
-                throw new DeleteCommentException("Пользователь, который пытается удалить комментарий не является его автором, а также администратором");
+                throw new RuntimeException("Пользователь, который пытается удалить комментарий не является его автором, а также администратором");
             }
         }
 
@@ -60,7 +57,7 @@ public class CommentService {
 
         if (!person.getRole().equals("ROLE_ADMIN")) {
             if (!commentToUpdate.getPerson().equals(person)) {
-                throw new DeleteCommentException("Пользователь, который пытается обновить комментарий не является его автором, а также администратором");
+                throw new RuntimeException("Пользователь, который пытается обновить комментарий не является его автором, а также администратором");
             }
         }
 
