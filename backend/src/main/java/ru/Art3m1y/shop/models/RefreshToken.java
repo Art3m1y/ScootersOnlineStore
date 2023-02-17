@@ -2,10 +2,7 @@ package ru.Art3m1y.shop.models;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Schema(name = "Модель рефреш токена")
 @NoArgsConstructor
@@ -14,10 +11,12 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "refreshtoken")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
+    @EqualsAndHashCode.Include
     private long id;
     @OneToOne
     @JoinColumn(name = "person_id", referencedColumnName = "id")
@@ -25,6 +24,10 @@ public class RefreshToken {
 
     public RefreshToken(Person person) {
         this.person = person;
+    }
+
+    public RefreshToken(long id) {
+        this.id = id;
     }
 }
 

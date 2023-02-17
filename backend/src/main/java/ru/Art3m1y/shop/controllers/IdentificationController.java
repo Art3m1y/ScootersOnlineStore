@@ -7,6 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.Art3m1y.shop.dtoes.AuthenticationPersonDTO;
 import ru.Art3m1y.shop.dtoes.RegistrationPersonDTO;
-import ru.Art3m1y.shop.modelMappers.PersonModelMapper;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 import ru.Art3m1y.shop.security.PersonDetails;
@@ -32,6 +32,8 @@ import ru.Art3m1y.shop.utils.validators.RegistrationValidator;
 
 import java.util.Map;
 import java.util.Optional;
+
+import static ru.Art3m1y.shop.controllers.Helpers.validateRequestBody;
 
 @Tag(name = "Регистрация, Аутентификация, идентификация, авторизация пользователей")
 @RestController
@@ -49,24 +51,16 @@ public class IdentificationController {
     @Operation(summary = "Регистрация пользователя")
     @PostMapping("/registration")
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<Map<String, String>> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
+    public ResponseEntity<?> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
         Person person = modelMapper.map(registrationPersonDTO, Person.class);
 
         registrationValidator.validate(person, bindingResult);
 
-        if (bindingResult.hasErrors()) {
-            StringBuilder errorsMessage = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new RuntimeException(errorsMessage.toString());
-        }
+        validateRequestBody(bindingResult);
 
         personService.save(person);
 
-        RefreshToken refreshToken = new RefreshToken(person);
-
-        refreshTokenService.save(refreshToken);
-
-        return returnRefreshAndAccessTokens(response, refreshToken, person);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Аутентификация пользователя")
@@ -75,21 +69,17 @@ public class IdentificationController {
     public ResponseEntity<?> login(@RequestBody @Valid AuthenticationPersonDTO authenticationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
         Person person = modelMapper.map(authenticationPersonDTO, Person.class);
 
-        if (bindingResult.hasErrors()) {
-            StringBuilder errorsMessage = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new RuntimeException(errorsMessage.toString());
-        }
+        validateRequestBody(bindingResult);
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(person.getEmail(), person.getPassword());
 
         Authentication auth = authenticationManager.authenticate(token);
 
-        if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        }
-
         Person personAuthenticated = ((PersonDetails) auth.getPrincipal()).getPerson();
+
+        if (personAuthenticated.getActivationCode() != null) {
+            throw new RuntimeException("Аккаунт не подтвержден");
+        }
 
         RefreshToken refreshToken = new RefreshToken(personAuthenticated);
 
@@ -132,6 +122,27 @@ public class IdentificationController {
         throw new RuntimeException("Токен обновления не смог пройти валидацию, либо он уже является не актуальным");
     }
 
+    @GetMapping("/activateAccount")
+    public ResponseEntity<?> activateAccount(@RequestParam("code") String activationCode) {
+        personService.activate(activationCode);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/restorePassword")
+    public ResponseEntity<?> restorePassword(@RequestBody String email) {
+        personService.restorePassword(email);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/changePassword")
+    public ResponseEntity<?> changePassword(@RequestParam("token") String restoreToken, @RequestBody String password, @RequestBody String confirmingPassword) {
+        personService.changePassword(restoreToken, password, confirmingPassword);
+
+        return ResponseEntity.ok().build();
+    }
+
     private ResponseEntity<Map<String, String>> returnRefreshAndAccessTokens(HttpServletResponse response, RefreshToken refreshToken, Person person) {
         String refreshTokenGenerated = jwtUtil.generateRefreshToken(refreshToken.getId());
 
@@ -144,19 +155,5 @@ public class IdentificationController {
         String accessTokenGenerated = jwtUtil.generateAccessToken(person.getId(), person.getName(), person.getSurname(), person.getEmail(), person.getRole());
 
         return new ResponseEntity<>(Map.of("accessToken", accessTokenGenerated), HttpStatus.OK);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
-        ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(HttpMessageNotReadableException e) {
-        ErrorResponse response = new ErrorResponse("Не удалось десереализировать переданные json-данные, ошибка: " + e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

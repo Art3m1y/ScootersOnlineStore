@@ -3,11 +3,7 @@ package ru.Art3m1y.shop.models;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.format.annotation.DateTimeFormat;
+import lombok.*;
 
 import java.util.Date;
 import java.util.List;
@@ -21,10 +17,12 @@ import java.util.Objects;
 @Setter
 @Entity
 @Table
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
+    @EqualsAndHashCode.Include
     private long id;
     @Column
     @NotEmpty(message = "Поле с именем не может быть пустым.")
@@ -54,14 +52,15 @@ public class Person {
     private Date updatedAt;
     @Column
     private String role;
+    private String activationCode;
     @OneToOne(mappedBy = "person")
     private RefreshToken refreshToken;
-    @OneToMany(mappedBy = "person", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "person", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Comment> comment;
-    @OneToMany(mappedBy = "person", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "person", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Cart> cart;
-    @OneToMany(mappedBy = "person", fetch = FetchType.LAZY)
-    private List<Order> orders;
+    @OneToOne(mappedBy = "person", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private RestorePassword RestorePassword;
 
     @Override
     public boolean equals(Object o) {
@@ -74,5 +73,9 @@ public class Person {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    public Person(long id) {
+        this.id = id;
     }
 }

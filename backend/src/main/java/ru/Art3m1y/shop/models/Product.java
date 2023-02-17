@@ -4,10 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -21,9 +18,11 @@ import java.util.List;
 @Setter
 @Entity
 @Table
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private long id;
     private String name;
     private int cost;
@@ -76,5 +75,7 @@ public class Product {
 
         images.add(image);
     }
+
+
 
 }

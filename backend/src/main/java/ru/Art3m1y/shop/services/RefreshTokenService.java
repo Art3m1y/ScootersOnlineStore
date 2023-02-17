@@ -40,6 +40,7 @@ public class RefreshTokenService {
         save(refreshTokenUpdated);
     }
 
+    @Transactional
     public RefreshToken findById(long id) {
         return refreshTokenRepository.findById(id).orElseThrow(() -> new RuntimeException("Токен обновления не найден в базе данных"));
     }

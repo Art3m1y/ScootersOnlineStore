@@ -3,10 +3,7 @@ package ru.Art3m1y.shop.models;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import ru.Art3m1y.shop.utils.enums.ContentType;
 
@@ -19,9 +16,11 @@ import java.util.Date;
 @Setter
 @Entity
 @Table
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private long id;
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "product_id", referencedColumnName = "id")

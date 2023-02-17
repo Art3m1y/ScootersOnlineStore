@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class GetCartDTO {
-    private GetProductDTO2 product;
+    private GetProductDTO product;
     private long amount;
 }

@@ -9,6 +9,7 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import jakarta.persistence.Version;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;

@@ -1,7 +1,9 @@
 package ru.Art3m1y.shop.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.Art3m1y.shop.models.Cart;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.Product;
@@ -15,8 +17,9 @@ import java.util.Optional;
 public class CartService {
     private final CartRepository cartRepository;
 
+    @Transactional
     public void addProductToCart(long productId, long amount, Person person) {
-        Optional<Cart> optionalCart = getByProductAndPerson(new Product(productId), person);
+        Optional<Cart> optionalCart = cartRepository.findFirstByProductAndPerson(new Product(productId), person);
 
         Cart cart;
 
@@ -33,30 +36,31 @@ public class CartService {
         }
     }
 
-    public Optional<Cart> getByProductAndPerson(Product product, Person person) {
-        return cartRepository.findFirstByProductAndPerson(product, person);
+    @Transactional
+    public Cart getByProductAndPerson(Product product, Person person) {
+        return cartRepository.findFirstByProductAndPerson(product, person).orElseThrow(() -> new RuntimeException("Не удалось найти запись в базе данных о таком продукте заданного пользователя"));
     }
 
-
+    @Transactional
     public List<Cart> getProductFromCart(Person person) {
-        return cartRepository.findAllByPerson(person);
+        return cartRepository.findAllByPerson(person, Sort.by(Sort.Direction.ASC, "id"));
     }
 
+    @Transactional
     public void deleteProductFromCart(long productId, boolean isAll, Person person) {
-        Optional<Cart> optionalCart = getByProductAndPerson(new Product(productId), person);
+        Cart cart = getByProductAndPerson(new Product(productId), person);
 
-        if (optionalCart.isEmpty()) {
-            throw new RuntimeException("Не удалось найти запись в базе данных о таком продукте заданного пользователя");
-        }
-
-        Cart cart = optionalCart.get();
-
-        if (isAll) {
+        if (isAll || cart.getAmount() == 1) {
             cartRepository.delete(cart);
         } else {
             cart.setAmount(cart.getAmount() - 1);
 
             cartRepository.save(cart);
         }
+    }
+
+    @Transactional
+    public void deleteAllProductsFromCart(Person person) {
+        cartRepository.deleteAllByPerson(person);
     }
 }

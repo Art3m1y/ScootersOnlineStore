@@ -1,7 +1,9 @@
 package ru.Art3m1y.shop.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.Art3m1y.shop.models.Image;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.ImageRepository;
@@ -9,7 +11,6 @@ import ru.Art3m1y.shop.repositories.ProductRepository;
 
 import java.io.File;
 import java.util.Date;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,18 +18,25 @@ public class ImageService {
     private final ImageRepository imageRepository;
     private final ProductRepository productRepository;
 
+    @Transactional
     public Image getRepresentationOfImageById(long id) {
-        Optional<Image> optionalImage = imageRepository.findById(id);
-
-        if (optionalImage.isEmpty()) {
-            throw new GetImageException("Не найдено изображения с таким идентификатором");
-        }
-
-        Image image = optionalImage.get();
-
-        return image;
+        return imageRepository.findById(id).orElseThrow(() -> new RuntimeException("Не найдено изображения с таким идентификатором"));
     }
 
+    @Transactional
+    public MediaType getMediaTypeByImageId(long id) {
+        Image image = getRepresentationOfImageById(id);
+
+        String contentType = image.getContentType().toString();
+
+        if (contentType.equals("jpg")) {
+            return MediaType.parseMediaType("image/jpeg");
+        }
+
+        return MediaType.parseMediaType("image/" + contentType);
+    }
+
+    @Transactional
     public File getImageById(long id) {
         Image image = getRepresentationOfImageById(id);
 
@@ -41,6 +49,7 @@ public class ImageService {
         return file;
     }
 
+    @Transactional
     public void deleteImageFromProductById(long id) {
         Image image = getRepresentationOfImageById(id);
 
@@ -52,15 +61,13 @@ public class ImageService {
 
         File dir = new File(directoryPath);
 
-        File fileToDelete = new File(dir.getAbsolutePath() + File.separator + image.getOriginalFileName() + "." + image.getContentType());
+        File fileToDelete = new File(dir.getAbsolutePath() + File.separator + image.getOriginalFileName() + "." + image.getContentType().toString());
 
         if (fileToDelete.exists()) {
             fileToDelete.delete();
         }
 
         imageRepository.deleteById(id);
-
-
 
         productRepository.save(product);
     }

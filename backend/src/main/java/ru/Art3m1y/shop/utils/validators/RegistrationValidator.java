@@ -21,7 +21,7 @@ public class RegistrationValidator implements Validator {
     public void validate(Object target, Errors errors) {
         Person person = (Person) target;
 
-        if (personService.findByName(person.getEmail())) {
+        if (personService.existByEmail(person.getEmail())) {
             errors.rejectValue("email", "", "Почта уже используется.");
         }
     }

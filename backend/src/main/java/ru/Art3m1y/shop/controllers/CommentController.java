@@ -2,9 +2,7 @@ package ru.Art3m1y.shop.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,14 +10,14 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ru.Art3m1y.shop.dtoes.AddCommentDTO;
 import ru.Art3m1y.shop.dtoes.UpdateCommentDTO;
-import ru.Art3m1y.shop.modelMappers.CommentModelMapper;
 import ru.Art3m1y.shop.models.Comment;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.security.PersonDetails;
 import ru.Art3m1y.shop.services.CommentService;
-import ru.Art3m1y.shop.utils.exceptions.*;
-import ru.Art3m1y.shop.utils.other.Helpers;
+
+import static ru.Art3m1y.shop.controllers.Helpers.checkConvertFromStringToInteger;
+import static ru.Art3m1y.shop.controllers.Helpers.validateRequestBody;
 
 @RestController
 @RequestMapping("/comment")
@@ -28,15 +26,10 @@ import ru.Art3m1y.shop.utils.other.Helpers;
 public class CommentController {
     private final CommentService commentService;
     private final ModelMapper modelMapper;
-    private final Helpers helpers;
 
     @PostMapping("/add")
     public ResponseEntity<?> addComment(@Valid @RequestBody AddCommentDTO addCommentDTO, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            StringBuilder errors = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
-            throw new RuntimeException(errors.toString());
-        }
+        validateRequestBody(bindingResult);
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
@@ -49,9 +42,7 @@ public class CommentController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteComment(@RequestBody String id) {
-        if (!helpers.checkConvertFromStringToLong(id)) {
-            throw new RuntimeException("Не удалось преобразовать строковое значение идентификатора продукта в лонг-формат");
-        }
+        checkConvertFromStringToInteger(id);
 
         long id_converted = Long.parseLong(id);
 
@@ -64,23 +55,12 @@ public class CommentController {
 
     @PatchMapping("/update")
     public ResponseEntity<?> updateComment(@RequestBody UpdateCommentDTO updateCommentDTO, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            StringBuilder errors = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errors.append(error.getField()).append(" ").append(error.getDefaultMessage()).append("; "));
-            throw new RuntimeException(errors.toString());
-        }
+        validateRequestBody(bindingResult);
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
         commentService.updateCommentById(modelMapper.map(updateCommentDTO, Comment.class), person);
 
         return  ResponseEntity.ok().build();
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
-        ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

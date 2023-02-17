@@ -13,6 +13,6 @@ import lombok.Setter;
 public class AuthenticationPersonDTO {
     @NotEmpty(message = "Почта не может быть пустой.")
     private String email;
-    @NotEmpty(message = "Почта не может быть пустой.")
+    @NotEmpty(message = "Пароль не может быть пустой.")
     private String password;
 }

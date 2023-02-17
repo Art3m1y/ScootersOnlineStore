@@ -1,10 +1,7 @@
 package ru.Art3m1y.shop.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
@@ -15,9 +12,11 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private long id;
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "person_id", referencedColumnName = "id")
@@ -37,4 +36,6 @@ public class Comment {
         this.mark = mark;
         this.text = text;
     }
+
+
 }

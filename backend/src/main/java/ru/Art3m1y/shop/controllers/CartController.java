@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.Art3m1y.shop.dtoes.AddProductToCartDTO;
 import ru.Art3m1y.shop.dtoes.DeleteProductFromCartDTO;
 import ru.Art3m1y.shop.dtoes.GetCartDTO;
-import ru.Art3m1y.shop.modelMappers.CartModelMapper;
 import ru.Art3m1y.shop.models.Cart;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.Product;
@@ -27,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static ru.Art3m1y.shop.controllers.Helpers.validateRequestBody;
+
 @RestController
 @RequestMapping("/cart")
 @RequiredArgsConstructor
@@ -37,11 +38,7 @@ public class CartController {
     @PostMapping("/add")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> addProductToCart(@Valid @RequestBody AddProductToCartDTO addProductToCartDTO, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            StringBuilder errorsMessage = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new RuntimeException(errorsMessage.toString());
-        }
+        validateRequestBody(bindingResult);
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
@@ -65,11 +62,7 @@ public class CartController {
     @DeleteMapping("/delete")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> deleteProductFromCart(@Valid @RequestBody DeleteProductFromCartDTO deleteProductFromCartDTO, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            StringBuilder errorsMessage = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> errorsMessage.append(error.getDefaultMessage()).append(";"));
-            throw new RuntimeException(errorsMessage.toString());
-        }
+        validateRequestBody(bindingResult);
 
         Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
@@ -78,18 +71,13 @@ public class CartController {
         return ResponseEntity.ok().build();
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(RuntimeException e) {
-        ErrorResponse response = new ErrorResponse(e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
+    @DeleteMapping("/deleteCart")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> deleteProductFromCart() {
+        Person person = ((PersonDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getPerson();
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handlerException(HttpMessageNotReadableException e) {
-        ErrorResponse response = new ErrorResponse("Не удалось десереализировать переданные json-данные, ошибка: " + e.getMessage(), System.currentTimeMillis());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
+        cartService.deleteAllProductsFromCart(person);
 
+        return ResponseEntity.ok().build();
+    }
 }
