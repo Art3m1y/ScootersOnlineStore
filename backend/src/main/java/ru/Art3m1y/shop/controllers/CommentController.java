@@ -1,5 +1,7 @@
 package ru.Art3m1y.shop.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -16,9 +18,10 @@ import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.security.PersonDetails;
 import ru.Art3m1y.shop.services.CommentService;
 
-import static ru.Art3m1y.shop.controllers.Helpers.checkConvertFromStringToInteger;
+import static ru.Art3m1y.shop.controllers.Helpers.checkConvertFromStringToLong;
 import static ru.Art3m1y.shop.controllers.Helpers.validateRequestBody;
 
+@Tag(name = "Контроллер комментариев")
 @RestController
 @RequestMapping("/comment")
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class CommentController {
     private final CommentService commentService;
     private final ModelMapper modelMapper;
 
+    @Operation(summary = "Добавление комментария")
     @PostMapping("/add")
     public ResponseEntity<?> addComment(@Valid @RequestBody AddCommentDTO addCommentDTO, BindingResult bindingResult) {
         validateRequestBody(bindingResult);
@@ -40,9 +44,10 @@ public class CommentController {
         return ResponseEntity.ok().build();
     }
 
+        @Operation(summary = "Удаление комментария по идентификатору комментария")
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteComment(@RequestBody String id) {
-        checkConvertFromStringToInteger(id);
+        checkConvertFromStringToLong(id);
 
         long id_converted = Long.parseLong(id);
 
@@ -53,6 +58,7 @@ public class CommentController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Обновление комментария по его идентификатору")
     @PatchMapping("/update")
     public ResponseEntity<?> updateComment(@RequestBody UpdateCommentDTO updateCommentDTO, BindingResult bindingResult) {
         validateRequestBody(bindingResult);

@@ -10,7 +10,7 @@ import lombok.*;
 @Getter
 @Setter
 @Entity
-@Table(name = "refreshtoken")
+@Table
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class RefreshToken {
     @Id

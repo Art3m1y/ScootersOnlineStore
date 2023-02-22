@@ -5,7 +5,6 @@ import org.springframework.stereotype.Repository;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 
-import java.sql.Ref;
 import java.util.Optional;
 
 @Repository

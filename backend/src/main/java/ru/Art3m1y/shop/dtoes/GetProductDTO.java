@@ -1,13 +1,8 @@
 package ru.Art3m1y.shop.dtoes;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
-import ru.Art3m1y.shop.models.Comment;
-import ru.Art3m1y.shop.models.Image;
 
 import java.util.List;
 

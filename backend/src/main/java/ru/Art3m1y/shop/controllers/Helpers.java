@@ -11,9 +11,9 @@ public class Helpers {
         }
     }
 
-    public static void checkConvertFromStringToInteger(String number) {
+    public static void checkConvertFromStringToLong(String number) {
         try {
-            int number_converted = Integer.parseInt(number);
+            long number_converted = Long.parseLong(number);
         } catch (NumberFormatException e) {
             throw new RuntimeException("Не удалось преобразовать стровку в интеджер-формат");
         }

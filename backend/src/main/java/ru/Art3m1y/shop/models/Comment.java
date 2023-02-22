@@ -1,11 +1,12 @@
 package ru.Art3m1y.shop.models;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.springframework.format.annotation.DateTimeFormat;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.Date;
-import java.util.Objects;
 
 @Entity
 @Table

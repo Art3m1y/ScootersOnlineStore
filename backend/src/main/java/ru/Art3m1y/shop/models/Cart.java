@@ -1,9 +1,10 @@
 package ru.Art3m1y.shop.models;
 
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table

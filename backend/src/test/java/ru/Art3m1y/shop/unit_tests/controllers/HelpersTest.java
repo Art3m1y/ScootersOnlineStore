@@ -51,7 +51,7 @@ class HelpersTest {
         String number = "10a";
 
         try {
-            Helpers.checkConvertFromStringToInteger(number);
+            Helpers.checkConvertFromStringToLong(number);
             fail("Ожидалось выбрасывание RuntimeException");
         } catch (RuntimeException e) {
             assertEquals(errorMessage, e.getMessage());

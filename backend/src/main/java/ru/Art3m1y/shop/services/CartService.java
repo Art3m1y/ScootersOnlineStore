@@ -36,12 +36,12 @@ public class CartService {
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Cart getByProductAndPerson(Product product, Person person) {
         return cartRepository.findFirstByProductAndPerson(product, person).orElseThrow(() -> new RuntimeException("Не удалось найти запись в базе данных о таком продукте заданного пользователя"));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<Cart> getProductFromCart(Person person) {
         return cartRepository.findAllByPerson(person, Sort.by(Sort.Direction.ASC, "id"));
     }

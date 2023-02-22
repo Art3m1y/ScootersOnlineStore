@@ -5,9 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.Art3m1y.shop.models.Comment;
 import ru.Art3m1y.shop.models.Person;
-import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.CommentRepository;
-import ru.Art3m1y.shop.repositories.ProductRepository;
 
 import java.util.Date;
 
@@ -17,7 +15,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final ProductService productService;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void existsById(long id) {
         if (!commentRepository.existsById(id)) {
             throw new RuntimeException("Комментарий с таким идентификатором не найден");
@@ -35,7 +33,7 @@ public class CommentService {
         commentRepository.save(comment);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Comment findById(long id) {
         return commentRepository.findById(id).orElseThrow(() -> new RuntimeException("Комментарий с таким идентификатором не найден"));
     }

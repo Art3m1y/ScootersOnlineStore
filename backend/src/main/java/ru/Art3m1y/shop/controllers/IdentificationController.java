@@ -7,28 +7,26 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.Art3m1y.shop.dtoes.AuthenticationPersonDTO;
+import ru.Art3m1y.shop.dtoes.ChangePasswordDTO;
 import ru.Art3m1y.shop.dtoes.RegistrationPersonDTO;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RefreshToken;
 import ru.Art3m1y.shop.security.PersonDetails;
 import ru.Art3m1y.shop.services.PersonService;
 import ru.Art3m1y.shop.services.RefreshTokenService;
-import ru.Art3m1y.shop.utils.exceptions.*;
 import ru.Art3m1y.shop.utils.jwt.JWTUtil;
-import ru.Art3m1y.shop.utils.validators.RegistrationValidator;
+import ru.Art3m1y.shop.utils.validators.PersonValidator;
 
 import java.util.Map;
 import java.util.Optional;
@@ -42,23 +40,23 @@ import static ru.Art3m1y.shop.controllers.Helpers.validateRequestBody;
 public class IdentificationController {
     private final PersonService personService;
     private final ModelMapper modelMapper;
-    private final RegistrationValidator registrationValidator;
+    private final PersonValidator personValidator;
     private final JWTUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final int cookie_max_age = 259200;
 
     @Operation(summary = "Регистрация пользователя")
-    @PostMapping("/registration")
+    @PostMapping(value = "/registration", consumes = {"application/json", "multipart/form-data"})
     @PreAuthorize("isAnonymous()")
-    public ResponseEntity<?> registration(@RequestBody @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, HttpServletResponse response) {
+    public ResponseEntity<?> registration(@RequestPart("register") @Valid RegistrationPersonDTO registrationPersonDTO, BindingResult bindingResult, @RequestPart(required = false) MultipartFile avatar, HttpServletResponse response) {
         Person person = modelMapper.map(registrationPersonDTO, Person.class);
 
-        registrationValidator.validate(person, bindingResult);
+        personValidator.validate(person, bindingResult);
 
         validateRequestBody(bindingResult);
 
-        personService.save(person);
+        personService.save(person, avatar);
 
         return ResponseEntity.ok().build();
     }
@@ -122,6 +120,7 @@ public class IdentificationController {
         throw new RuntimeException("Токен обновления не смог пройти валидацию, либо он уже является не актуальным");
     }
 
+    @Operation(summary = "Активировать аккаунт по коду активации")
     @GetMapping("/activateAccount")
     public ResponseEntity<?> activateAccount(@RequestParam("code") String activationCode) {
         personService.activate(activationCode);
@@ -129,6 +128,7 @@ public class IdentificationController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Восстановление пароля по почте")
     @PostMapping("/restorePassword")
     public ResponseEntity<?> restorePassword(@RequestBody String email) {
         personService.restorePassword(email);
@@ -136,9 +136,12 @@ public class IdentificationController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/changePassword")
-    public ResponseEntity<?> changePassword(@RequestParam("token") String restoreToken, @RequestBody String password, @RequestBody String confirmingPassword) {
-        personService.changePassword(restoreToken, password, confirmingPassword);
+    @Operation(summary = "Смена пароля по токену восстановления")
+    @PatchMapping("/changePassword")
+    public ResponseEntity<?> changePassword(@RequestParam("token") String restoreToken, @RequestBody @Valid ChangePasswordDTO changePasswordDTO, BindingResult bindingResult) {
+        validateRequestBody(bindingResult);
+
+        personService.changePassword(restoreToken, changePasswordDTO.getPassword(), changePasswordDTO.getConfirmingPassword());
 
         return ResponseEntity.ok().build();
     }

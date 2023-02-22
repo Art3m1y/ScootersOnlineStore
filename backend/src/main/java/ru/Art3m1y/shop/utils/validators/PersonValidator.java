@@ -9,7 +9,7 @@ import ru.Art3m1y.shop.services.PersonService;
 
 @Component
 @RequiredArgsConstructor
-public class RegistrationValidator implements Validator {
+public class PersonValidator implements Validator {
     private final PersonService personService;
 
     @Override

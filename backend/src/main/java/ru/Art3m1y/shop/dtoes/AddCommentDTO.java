@@ -1,15 +1,14 @@
 package ru.Art3m1y.shop.dtoes;
 
-import jakarta.persistence.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import ru.Art3m1y.shop.models.Person;
-import ru.Art3m1y.shop.models.Product;
 
+@Schema(name = "Модель передачи данных для добавления комментариев", description = "Используется для удаления не нужных полей из основной модели Comment")
 @Getter
 @Setter
 public class AddCommentDTO {

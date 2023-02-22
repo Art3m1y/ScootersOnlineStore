@@ -54,6 +54,7 @@ services:
         condition: service_healthy
     volumes:
       - images:/images/
+      - avatars:/avatars/
 
 
 volumes:

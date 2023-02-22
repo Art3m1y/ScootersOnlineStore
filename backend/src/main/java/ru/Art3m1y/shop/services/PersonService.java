@@ -4,12 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import ru.Art3m1y.shop.models.Person;
 import ru.Art3m1y.shop.models.RestorePassword;
 import ru.Art3m1y.shop.repositories.PersonRepository;
 import ru.Art3m1y.shop.repositories.RefreshTokenRepository;
 import ru.Art3m1y.shop.repositories.RestorePasswordRepository;
 
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
@@ -21,14 +25,22 @@ public class PersonService {
     private final MailSenderService mailSenderService;
     private final RestorePasswordRepository restorePasswordRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AvatarService avatarService;
 
-    @Transactional
+    private final long milliseconds_in_day = 86400000;
+
+    @Transactional(readOnly = true)
+    public Person findById(long id) {
+        return personRepository.findById(id).orElseThrow(() -> new RuntimeException("Пользователь с таким идентификатором не найден"));
+    }
+
+    @Transactional(readOnly = true)
     public boolean existByEmail(String email) {
         return personRepository.existsByEmail(email);
     }
 
-    @Transactional
-    public void save(Person person) {
+    @Transactional(rollbackFor = Exception.class)
+    public void save(Person person, MultipartFile avatar) {
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         person.setRole("ROLE_USER");
         person.setCreatedAt(new Date());
@@ -38,9 +50,13 @@ public class PersonService {
 
         person.setActivationCode(activationCode);
 
-        sendMailMessageToVerifyAccount(person.getName(), person.getSurname(), person.getEmail(), activationCode);
-
         personRepository.save(person);
+
+        if ((avatar != null) && (avatar.getSize() != 0)) {
+            avatarService.saveAvatar(person, avatar);
+        }
+
+        sendMailMessageToVerifyAccount(person.getName(), person.getSurname(), person.getEmail(), activationCode);
     }
 
     @Transactional
@@ -81,11 +97,38 @@ public class PersonService {
 
         RestorePassword restorePassword = restorePasswordRepository.findByToken(restoreToken).orElseThrow(() -> new RuntimeException("Токен восстановления пароля является недействительным"));
 
+        if ((new Date().getTime()) - restorePassword.getCreatedAt().getTime() > milliseconds_in_day) {
+            throw new RuntimeException("Срок действия токена восстановления пароля истек");
+        }
+
         Person person = restorePassword.getPerson();
 
         person.setPassword(passwordEncoder.encode(password));
 
         personRepository.save(person);
+    }
+
+    @Transactional
+    public void updatePerson(Person person, MultipartFile avatar) {
+        Person personToUpdate = findById(person.getId());
+
+        if (person.getPassword() != null) {
+            personToUpdate.setPassword(passwordEncoder.encode(person.getPassword()));
+        }
+
+        personToUpdate.setEmail(person.getEmail());
+        personToUpdate.setName(person.getName());
+        personToUpdate.setSurname(person.getSurname());
+        personToUpdate.setCountry(person.getCountry());
+        personToUpdate.setYearOfBirth(person.getYearOfBirth());
+
+        personToUpdate.setUpdatedAt(new Date());
+
+        personRepository.save(personToUpdate);
+
+        if ((avatar != null) && (avatar.getSize() != 0)) {
+            avatarService.updateAvatar(personToUpdate, avatar);
+        }
     }
 
     private void sendMailMessageToVerifyAccount(String name, String surname, String email, String activationCode) {
@@ -110,5 +153,13 @@ public class PersonService {
         String message = String.format("Здравствуйте, %s %s! Пожалуйста, посетите следующую ссылку, чтобы восстановить Ваш пароль: %s! Если запрос на восстановление пароля отправили не Вы, то просто проигнорируйте это сообщение!", name, surname, restorePasswordLink);
 
         mailSenderService.send(email, subject, message);
+    }
+
+    public void deletePersonById(long id) {
+        if (!personRepository.existsById(id)) {
+            throw new RuntimeException("Пользователя с таким идентификатором не существует");
+        }
+
+        personRepository.deleteById(id);
     }
 }

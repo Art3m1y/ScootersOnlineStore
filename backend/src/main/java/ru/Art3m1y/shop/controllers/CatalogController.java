@@ -13,7 +13,7 @@ import ru.Art3m1y.shop.services.ProductService;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import static ru.Art3m1y.shop.controllers.Helpers.checkConvertFromStringToInteger;
+import static ru.Art3m1y.shop.controllers.Helpers.checkConvertFromStringToLong;
 
 @Tag(name = "Каталог продуктов")
 @RestController
@@ -26,7 +26,7 @@ public class CatalogController {
     @Operation(summary = "Получение продукта по его идентификатору")
     @GetMapping(value = "/{id}")
     public ResponseEntity<GetProductDTO> getProductById(@PathVariable String id) {
-        checkConvertFromStringToInteger(id);
+        checkConvertFromStringToLong(id);
 
         return ResponseEntity.ok().body(modelMapper.map(productService.getProductById(Long.parseLong(id)), GetProductDTO.class));
     }
@@ -38,8 +38,8 @@ public class CatalogController {
 
         if (search.isPresent() && !search.get().isBlank()) {
             if (page.isPresent() && itemsPerPage.isPresent()) {
-                checkConvertFromStringToInteger(page.get());
-                checkConvertFromStringToInteger(itemsPerPage.get());
+                checkConvertFromStringToLong(page.get());
+                checkConvertFromStringToLong(itemsPerPage.get());
 
                 int page_converted = Integer.parseInt(page.get()) - 1;
                 int itemsPerPage_converted = Integer.parseInt(itemsPerPage.get());
@@ -56,8 +56,8 @@ public class CatalogController {
         }
 
         if (page.isPresent() && itemsPerPage.isPresent()) {
-            checkConvertFromStringToInteger(page.get());
-            checkConvertFromStringToInteger(itemsPerPage.get());
+            checkConvertFromStringToLong(page.get());
+            checkConvertFromStringToLong(itemsPerPage.get());
 
             int page_converted = Integer.parseInt(page.get()) - 1;
             int itemsPerPage_converted = Integer.parseInt(itemsPerPage.get());

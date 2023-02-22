@@ -2,9 +2,7 @@ package ru.Art3m1y.shop.models;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-
 import lombok.*;
-import org.springframework.format.annotation.DateTimeFormat;
 import ru.Art3m1y.shop.utils.enums.ContentType;
 
 import java.util.Date;

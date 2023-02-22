@@ -1,10 +1,11 @@
 package ru.Art3m1y.shop.dtoes;
 
-import jakarta.validation.constraints.Max;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 
+@Schema(name = "Модель передачи данных для удаления продукта из корзины")
 @Getter
 @Setter
 public class DeleteProductFromCartDTO {
