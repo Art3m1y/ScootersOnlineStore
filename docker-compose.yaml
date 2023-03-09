@@ -1,0 +1,72 @@
+version: '3.5'
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:1.13
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - app
+      - postgres
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+      - web-root:/var/www/html
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - dhparam:/etc/ssl/certs
+  certbot:
+      image: certbot/certbot
+      depends_on:
+        - nginx
+      container_name: certbot
+      volumes:
+        - certbot-etc:/etc/letsencrypt
+        - certbot-var:/var/lib/letsencrypt
+        - web-root:/var/www/html
+      command: certonly --webroot --webroot-path=/var/www/html --email artem.kuryshkin@gmail.com --agree-tos --no-eff-email --staging -d shop.javaspringbackend.software
+  postgres:
+    container_name: postgres_db
+    ports:
+      - "5555:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=test
+    image: postgres:12.13-alpine3.17
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  app:
+    image: art3m1y/spring1:cors-disabled
+    container_name: spring-boot-app
+    ports:
+      - "8080:8080"
+    environment:
+      "spring.datasource.url": "jdbc:postgresql://postgres:5432/test"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - images:/images/
+      - avatars:/avatars/
+
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
+  dhparam:   # <======
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/admin/shop/dhparam/
+      o: bind
+  postgres:
+  images:
+
