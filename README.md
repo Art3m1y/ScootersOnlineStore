@@ -3,6 +3,9 @@
  Scooters online-shop with frontend on Typescript + ReactJS and backend on Java Spring Framework 3.
 
  This project was created by [Art3m1y](https://github.com/Art3m1y) and [ShyHarvey](https://github.com/ShyHarvey).
+ ## account for testing:
+* Email: ilia.andrejchenko@gmail.com 
+* Password: admin
  ### Implemented features:
  + JWT authorization 
  + Registration
