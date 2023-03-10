@@ -39,18 +39,23 @@
  + JWT
  ### Start application
  + Clone repository from Github:
- ```https://github.com/Art3m1y/scooters-online-store.git```
+ 
+ ```https://github.com/Art3m1y/ScootersOnlineStore.git```
  + For run frontend part of project:
      + Setup Node Package Manager
      + Download all dependencies for project (write this command only from frontend path)
+     
      ```npm install```
      + Run frontend part of project (write this command only from frontend path)
+     
      ```npm start```
  + For run backend part of project     :
      + Setup Java Development Kit
      + Compile and package the application to an executable JAR
+     
      ```mvn package```
      + Run backend part of project (executable JAR)
+     
      ```java -jar scooters-shop-project.jar```
 
   _If you have followed all the steps, the frontend will be available at http://<host>:3000 and the backend will be available at http://<host>:8080_
