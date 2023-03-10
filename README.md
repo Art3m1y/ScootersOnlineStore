@@ -37,7 +37,7 @@
  + PostgreSQL
  + JUnit 5
  + JWT
- ### Start application
+ ### How to start
  + Clone repository from Github:
  
  ```https://github.com/Art3m1y/ScootersOnlineStore.git```
