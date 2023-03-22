@@ -1,89 +1,88 @@
 package ru.Art3m1y.shop.utils.jwt;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.time.ZonedDateTime;
 import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class JWTUtil {
-    private String secretKeyForAccess = "ASLJHD123IAD8123I";
-    private String secretKeyForRefresh = "ASLJHD123IAMSDK";
-    private String subject = "Identification details";
-    private String issuer = "Art3m1y";
-    private Algorithm signAccessToken = Algorithm.HMAC256(secretKeyForAccess);
-    private Algorithm signRefreshToken = Algorithm.HMAC256(secretKeyForRefresh);
-    private JWTVerifier verifierForAccessToken = JWT.require(signAccessToken)
-            .withIssuer(issuer)
-            .withSubject(subject)
-            .build();
-    private JWTVerifier verifierForRefreshToken = JWT.require(signRefreshToken)
-            .withIssuer(issuer)
-            .withSubject(subject)
-            .build();
+    @Value("${jwt.token.access.secret}")
+    private String secretKeyForAccessToken;
+    @Value("${jwt.token.refresh.secret}")
+    private String secretKeyForRefreshToken;
+    @Value("${jwt.token.access.action-time}")
+    private long actionTimeOfAccessTokenInMinutes;
+    @Value("${jwt.token.refresh.action-time}")
+    private long actionTimeOfRefreshTokenInMinutes;
+    @Value("${backend-url}")
+    private String issuer;
+
+    private JwtParser verifierForAccessToken;
+    private JwtParser verifierForRefreshToken;
+
+    @PostConstruct
+    public void init() {
+       verifierForAccessToken =  Jwts.parserBuilder()
+                .setSigningKey(secretKeyForRefreshToken)
+                .build();
+        verifierForRefreshToken = Jwts.parserBuilder()
+                .setSigningKey(secretKeyForRefreshToken)
+                .build();
+    }
 
     public String generateAccessToken(long id, String name, String surname, String email, String role) {
-        return JWT.create()
-                .withSubject(subject)
-                .withExpiresAt(Date.from(ZonedDateTime.now().plusMinutes(30).toInstant()))
-                .withIssuedAt(new Date())
-                .withIssuer(issuer)
-                .withClaim("id", id)
-                .withClaim("name", name)
-                .withClaim("surname", surname)
-                .withClaim("email", email)
-                .withClaim("role", role)
-                .sign(signAccessToken);
+        return Jwts.builder()
+                .setSubject(String.valueOf(id))
+                .setExpiration(Date.from(ZonedDateTime.now().plusMinutes(actionTimeOfAccessTokenInMinutes).toInstant()))
+                .setIssuedAt(new Date())
+                .setIssuer(issuer)
+                .claim("id", id)
+                .claim("name", name)
+                .claim("surname", surname)
+                .claim("email", email)
+                .claim("role", role)
+                .signWith(SignatureAlgorithm.HS256, secretKeyForAccessToken)
+                .compact();
     }
 
     public String generateRefreshToken(long id) {
-        return JWT.create()
-                .withSubject(subject)
-                .withExpiresAt(Date.from(ZonedDateTime.now().plusDays(3).toInstant()))
-                .withIssuedAt(new Date())
-                .withIssuer(issuer)
-                .withClaim("id", id)
-                .sign(signRefreshToken);
+        return Jwts.builder()
+                .setSubject(String.valueOf(id))
+                .setExpiration(Date.from(ZonedDateTime.now().plusMinutes(actionTimeOfRefreshTokenInMinutes).toInstant()))
+                .setIssuedAt(new Date())
+                .setIssuer(issuer)
+                .claim("id", id)
+                .signWith(SignatureAlgorithm.HS256, secretKeyForRefreshToken)
+                .compact();
     }
 
     public boolean verifyAccessToken(String token) {
-        try {
-            verifierForAccessToken.verify(token);
-            return true;
-        } catch (JWTVerificationException e) {
-            System.out.println("Invalid access JWT token");
-            return false;
-        }
+        return verifierForAccessToken.isSigned(token);
     }
 
     public boolean verifyRefreshToken(String token) {
-        try {
-            verifierForRefreshToken.verify(token);
-            return true;
-        } catch (JWTVerificationException e) {
-            System.out.println("Invalid refresh JWT token");
-            return false;
-        }
+        return verifierForRefreshToken.isSigned(token);
     }
 
     public String getEmailFromAccessToken(String token) {
-        return verifierForAccessToken.verify(token).getClaim("email").asString();
+        return verifierForAccessToken.parseClaimsJws(token).getBody().get("email").toString();
     }
 
-    public String getEmailFromRefreshToken(String token) {
-        return verifierForRefreshToken.verify(token).getClaim("email").asString();
-    }
 
     public long getIdFromRefreshToken(String token) {
-        return verifierForRefreshToken.verify(token).getClaim("id").asLong();
+        return (long) verifierForRefreshToken.parseClaimsJws(token).getBody().get("id");
     }
 
     public String getRoleFromRefreshToken(String token) {
-        return verifierForRefreshToken.verify(token).getClaim("role").asString();
+        return verifierForRefreshToken.parseClaimsJws(token).getBody().get("role").toString();
     }
-
 }

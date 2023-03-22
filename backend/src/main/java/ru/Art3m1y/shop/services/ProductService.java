@@ -9,7 +9,7 @@ import ru.Art3m1y.shop.models.Image;
 import ru.Art3m1y.shop.models.Product;
 import ru.Art3m1y.shop.repositories.ImageRepository;
 import ru.Art3m1y.shop.repositories.ProductRepository;
-import ru.Art3m1y.shop.utils.enums.ContentType;
+
 import java.io.*;
 import java.util.*;
 
