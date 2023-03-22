@@ -152,6 +152,8 @@ public class IdentificationController {
         Cookie cookieWithRefreshToken = new Cookie("refreshToken", refreshTokenGenerated);
 
         cookieWithRefreshToken.setMaxAge(cookie_max_age);
+        cookieWithRefreshToken.setHttpOnly(true);
+        cookieWithRefreshToken.setSecure(true);
 
         response.addCookie(cookieWithRefreshToken);
 

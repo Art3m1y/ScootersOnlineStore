@@ -1,8 +1,10 @@
 package ru.Art3m1y.shop.models;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.beans.factory.annotation.Value;
 import ru.Art3m1y.shop.utils.enums.ContentType;
 
 import java.util.Date;
@@ -36,6 +38,6 @@ public class Image {
     }
 
     public String getLink() {
-        return "https://shop.javaspringbackend.software" + "/image/" + id;
+        return "https://scooters-shop.art3m1y.me/" + "image/" + id;
     }
 }

@@ -1,6 +1,7 @@
 package ru.Art3m1y.shop.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +21,15 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class PersonService {
+    @Value("${frontend-url}")
+    private String frontendUrl;
+    @Value("${backend-url}")
+    private String backendUrl;
     private final PersonRepository personRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailSenderService mailSenderService;
     private final RestorePasswordRepository restorePasswordRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final AvatarService avatarService;
-
-    private final long milliseconds_in_day = 86400000;
 
     @Transactional(readOnly = true)
     public Person findById(long id) {
@@ -97,6 +99,7 @@ public class PersonService {
 
         RestorePassword restorePassword = restorePasswordRepository.findByToken(restoreToken).orElseThrow(() -> new RuntimeException("Токен восстановления пароля является недействительным"));
 
+        long milliseconds_in_day = 86400000;
         if ((new Date().getTime()) - restorePassword.getCreatedAt().getTime() > milliseconds_in_day) {
             throw new RuntimeException("Срок действия токена восстановления пароля истек");
         }
@@ -132,9 +135,7 @@ public class PersonService {
     }
 
     private void sendMailMessageToVerifyAccount(String name, String surname, String email, String activationCode) {
-        String domain = "https://shop.javaspringbackend.software/";
-
-        String activationLink = domain + "/auth/activateAccount?code=" + activationCode;
+        String activationLink = frontendUrl + "verification/" + activationCode;
 
         String subject = "Активация аккаунта";
 
@@ -144,9 +145,7 @@ public class PersonService {
     }
 
     private void sendMailMessageToRestorePassword(String name, String surname, String email, String restoreToken) {
-        String domain = "https://shop.javaspringbackend.software/";
-
-        String restorePasswordLink = domain + "/auth/restorePassword?token=" + restoreToken;
+        String restorePasswordLink = backendUrl + "auth/restorePassword?token=" + restoreToken;
 
         String subject = "Восстановление пароля";
 
