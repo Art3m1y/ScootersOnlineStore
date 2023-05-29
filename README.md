@@ -1,6 +1,6 @@
 
 ### Description
- Scooters online-shop with frontend on Typescript + ReactJS and backend on Java Spring Framework 3.
+ Scooters online-shop with frontend on Typescript + ReactJS and backend on Java Spring Framework 6.
 
  This project was created by [Art3m1y](https://github.com/Art3m1y) and [ShyHarvey](https://github.com/ShyHarvey).
  ### Account for testing:
@@ -32,7 +32,7 @@
 
  __Backend__:
  + Java
- + Spring framework 3
+ + Spring framework 6
  + Hibernate
  + PostgreSQL
  + JUnit 5
